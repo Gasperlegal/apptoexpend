@@ -1,0 +1,11 @@
+{
+  "name": "apptoexpend",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node src/generateConfig.js",
+    "serve": "npx http-server public -p 8080"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
