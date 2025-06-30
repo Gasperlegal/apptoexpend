@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Ward Expense Management (Final)</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+
+<style>
+
+body {
+
+font-family: 'Inter', sans-serif;
+
+background-color: #f3f4f6; /* gray-100 */
+
+}
+
+.card {
+
+background-color: white;
+
+border-radius: 0.75rem; /* rounded-xl */
+
+box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+}
+
+.btn-primary {
+
+background-color: #4f46e5; /* indigo-600 */
+
+color: white;
+
+font-weight: 500;
+
+padding: 0.625rem 1.25rem;
+
+border-radius: 0.5rem; /* rounded-lg */
+
+transition: background-color 0.2s ease;
+
+}
+
+.btn-primary:hover:not(:disabled) {
+
+background-color: #4338ca; /* indigo-700 */
+
+}
+
+.btn-primary:disabled {
+
+background-color: #a5b4fc; /* indigo-300 */
+
+cursor: not-allowed;
+
+}
+
+.btn-secondary {
+
+background-color: #e5e7eb; /* gray-200 */
+
+color: #374151; /* gray-700 */
+
+font-weight: 500;
+
+padding: 0.5rem 1rem;
+
+border-radius: 0.5rem;
+
+transition: background-color 0.2s ease;
+
+}
+
+.btn-secondary:hover {
+
+background-color: #d1d5db; /* gray-300 */
+
+}
+
+.form-input, .form-select {
+
+width: 100%;
+
+border-radius: 0.5rem;
+
+border: 1px solid #d1d5db; /* gray-300 */
+
+padding: 0.5rem 0.75rem;
+
+transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+}
+
+.form-input:focus, .form-select:focus {
+
+outline: none;
+
+border-color: #4f46e5; /* indigo-600 */
+
+box-shadow: 0 0 0 2px #c7d2fe; /* indigo-200 */
+
+}
+
+.modal-backdrop {
+
+position: fixed;
+
+inset: 0;
+
+background-color: rgb(0 0 0 / 0.5);
+
+display: flex;
+
+align-items: center;
+
+justify-content: center;
+
+z-index: 50;
+
+}
+
+.modal-content {
+
+background-color: white;
+
+padding: 1.5rem;
+
+border-radius: 0.75rem;
+
+box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+width: 100%;
+
+max-width: 32rem; /* md */
+
+}
+
+.spinner {
+
+border: 4px solid rgba(0, 0, 0, 0.1);
+
+width: 36px;
+
+height: 36px;
+
+border-radius: 50%;
+
+border-left-color: #4f46e5;
+
+animation: spin 1s ease infinite;
+
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+</style>
+
+</head>
+
+<body class="p-4 md:p-8">
+
+
+<div class="max-w-7xl mx-auto">
+
+<header class="mb-8 flex justify-between items-start">
+
+<div>
+
+<h1 class="text-3xl md:text-4xl font-bold text-gray-800">Ward Expense Management</h1>
+
+<p class="text-gray-500 mt-1">The complete solution for tracking, managing, and filing Form 15.7.</p>
+
+</div>
+
+<button id="open-settings-btn" class="btn-secondary flex items-center">
+
+<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+
+Settings
+
+</button>
+
+</header>
+
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+<div class="lg:col-span-1 space-y-8">
+
+<div class="card p-6">
+
+<h2 class="text-xl font-semibold text-gray-700 mb-4">Manage Wards</h2>
+
+<form id="add-ward-form" class="space-y-4">
+
+<input type="text" id="ward-name" placeholder="Ward's Full Name" class="form-input" required>
+
+<input type="text" id="case-number" placeholder="Case Number" class="form-input" required>
+
+<button type="submit" class="btn-primary w-full">Add Ward</button>
+
+</form>
+
+<div class="mt-6">
+
+<h3 class="text-lg font-medium text-gray-600 mb-2">Select Ward to Manage</h3>
+
+<select id="ward-selector" class="form-select"></select>
+
+</div>
+
+</div>
+
+
+<div id="add-bill-card" class="card p-6 hidden">
+
+<h2 class="text-xl font-semibold text-gray-700 mb-4">Add New Bill</h2>
+
+<form id="add-bill-form" class="space-y-4">
+
+<fieldset>
+
+<legend class="text-sm font-medium text-gray-700 mb-2">Expense Type</legend>
+
+<div class="flex items-center space-x-4">
+
+<div class="flex items-center"><input id="type-one-time" name="expense-type" type="radio" value="One-Time" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" checked><label for="type-one-time" class="ml-2 block text-sm text-gray-900">One-Time</label></div>
+
+<div class="flex items-center"><input id="type-budget" name="expense-type" type="radio" value="Budget" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="type-budget" class="ml-2 block text-sm text-gray-900">Budget</label></div>
+
+</div>
+
+</fieldset>
+
+<input type="text" id="payee" placeholder="Payee (e.g., AEP Ohio)" class="form-input" required>
+
+<input type="number" id="amount" placeholder="Amount" class="form-input" min="0.01" step="0.01" required>
+
+<fieldset>
+
+<legend class="text-sm font-medium text-gray-700 -mb-1">Amount Type</legend>
+
+<div class="flex items-center space-x-4 pt-1">
+
+<div class="flex items-center"><input id="amount-type-exact" name="amount-type" type="radio" value="Exact" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" checked><label for="amount-type-exact" class="ml-2 block text-sm text-gray-900">Exact Amount</label></div>
+
+<div class="flex items-center"><input id="amount-type-up-to" name="amount-type" type="radio" value="Up To" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="amount-type-up-to" class="ml-2 block text-sm text-gray-900">Up To</label></div>
+
+</div>
+
+</fieldset>
+
+<textarea id="description" placeholder="Description of expense" class="form-input" rows="3" required></textarea>
+
+<button type="submit" class="btn-primary w-full">Add Bill</button>
+
+</form>
+
+</div>
+
+</div>
+
+
+<div class="lg:col-span-2 card p-6 hidden" id="bill-management-section">
+
+<div id="ward-bills-view" class="hidden">
+
+<h2 class="text-2xl font-bold text-gray-800 mb-1">Bills for <span id="selected-ward-name"></span></h2>
+
+<p class="text-sm text-gray-500 font-mono mb-6">Case #: <span id="selected-case-number"></span></p>
+
+<h3 class="text-lg font-semibold text-gray-700">Pending Application</h3>
+
+<div class="overflow-x-auto mt-4">
+
+<table class="min-w-full divide-y divide-gray-200">
+
+<thead class="bg-gray-50"><tr><th class="w-12 px-4 py-3"><input type="checkbox" id="select-all-pending"></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payee</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th></tr></thead>
+
+<tbody id="pending-bills-body" class="bg-white divide-y divide-gray-200"></tbody>
+
+</table>
+
+<p id="no-pending-bills" class="text-center py-8 text-gray-500 hidden">No pending bills.</p>
+
+</div>
+
+<div class="mt-4 flex justify-end"><button id="generate-package-btn" class="btn-primary" disabled>Prepare Application Package</button></div>
+
+<div class="mt-10"><h3 class="text-lg font-semibold text-gray-700">Filing History</h3>
+
+<div class="overflow-x-auto mt-4"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payee</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th></tr></thead><tbody id="filed-bills-body" class="bg-white divide-y divide-gray-200"></tbody></table><p id="no-filed-bills" class="text-center py-8 text-gray-500 hidden">No filing history.</p></div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="settings-modal" class="modal-backdrop hidden"><div class="modal-content"><h2 class="text-xl font-bold text-gray-800 mb-4">Default Guardian Settings</h2><form id="settings-form" class="space-y-4"><input type="text" id="gdn_name" name="gdn_name" placeholder="Guardian Full Name" class="form-input" required><input type="text" id="address_1" name="address_1" placeholder="Address" class="form-input" required><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><input type="text" id="city" name="city" placeholder="City" class="form-input" required><input type="text" id="state" name="state" placeholder="State" class="form-input" required><input type="text" id="zip" name="zip" placeholder="Zip Code" class="form-input" required></div><input type="tel" id="phone" name="phone" placeholder="Telephone Number" class="form-input" required><div class="flex justify-end space-x-3 pt-4"><button type="button" id="close-settings-btn" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Save Settings</button></div></form></div></div>
+
+<div id="generate-confirm-modal" class="modal-backdrop hidden"><div class="modal-content text-center"><h3 class="text-lg font-medium text-gray-900">Guardian Signature</h3><p class="mt-2 text-sm text-gray-600">Include the default guardian's signature block on the application?</p><div class="flex justify-center space-x-4 mt-6"><button id="confirm-gen-blank" class="btn-secondary">Leave Blank</button><button id="confirm-gen-guardian" class="btn-primary">Use Guardian Info</button></div></div></div>
+
+<div id="spinner-modal" class="modal-backdrop hidden"><div class="text-center text-white"><div class="spinner mx-auto"></div><p id="spinner-message" class="mt-4 text-lg font-semibold"></p></div></div>
+
+<div id="notification-modal" class="modal-backdrop hidden"><div class="modal-content relative"><div class="text-center"><div id="modal-icon-container" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4"></div><h3 id="modal-title" class="text-lg font-medium text-gray-900"></h3><p id="modal-message" class="text-sm text-gray-500 mt-2"></p><button id="modal-close-btn" class="btn-primary mt-6 w-full">Close</button></div></div></div>
+
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, where, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-ward-app';
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+const db = getFirestore(app);
+
+
+let currentUserId = null;
+
+let wards = [];
+
+let bills = [];
+
+let guardianSettings = {};
+
+let selectedWardId = null;
+
+let selectedWardData = {};
+
+let unsubscribeWards = () => {};
+
+let unsubscribeBills = () => {};
+
+const { PDFDocument } = PDFLib;
+
+const elements = {
+
+openSettingsBtn: document.getElementById('open-settings-btn'),
+
+settingsModal: document.getElementById('settings-modal'),
+
+settingsForm: document.getElementById('settings-form'),
+
+closeSettingsBtn: document.getElementById('close-settings-btn'),
+
+addWardForm: document.getElementById('add-ward-form'),
+
+wardSelector: document.getElementById('ward-selector'),
+
+addBillCard: document.getElementById('add-bill-card'),
+
+addBillForm: document.getElementById('add-bill-form'),
+
+billManagementSection: document.getElementById('bill-management-section'),
+
+wardBillsView: document.getElementById('ward-bills-view'),
+
+selectedWardName: document.getElementById('selected-ward-name'),
+
+selectedCaseNumber: document.getElementById('selected-case-number'),
+
+pendingBillsBody: document.getElementById('pending-bills-body'),
+
+filedBillsBody: document.getElementById('filed-bills-body'),
+
+noPendingBills: document.getElementById('no-pending-bills'),
+
+noFiledBills: document.getElementById('no-filed-bills'),
+
+selectAllPending: document.getElementById('select-all-pending'),
+
+generatePackageBtn: document.getElementById('generate-package-btn'),
+
+generateConfirmModal: document.getElementById('generate-confirm-modal'),
+
+confirmGenBlank: document.getElementById('confirm-gen-blank'),
+
+confirmGenGuardian: document.getElementById('confirm-gen-guardian'),
+
+spinnerModal: document.getElementById('spinner-modal'),
+
+spinnerMessage: document.getElementById('spinner-message'),
+
+notificationModal: document.getElementById('notification-modal'),
+
+modalIconContainer: document.getElementById('modal-icon-container'),
+
+modalTitle: document.getElementById('modal-title'),
+
+modalMessage: document.getElementById('modal-message'),
+
+modalCloseBtn: document.getElementById('modal-close-btn'),
+
+};
+
+
+onAuthStateChanged(auth, user => {
+
+if (user) {
+
+if (currentUserId !== user.uid) { // Prevent re-initializing
+
+currentUserId = user.uid;
+
+initializeAppLogic();
+
+}
+
+} else {
+
+signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed", err));
+
+}
+
+});
+
+async function initializeAppLogic() {
+
+setupEventListeners();
+
+await loadGuardianSettings();
+
+loadWards();
+
+}
+
+
+// --- FIXED: Pointing collections to user-specific paths to resolve permission errors ---
+
+const getWardsCollection = () => collection(db, artifacts/${appId}/users/${currentUserId}/wards);
+
+const getBillsCollection = () => collection(db, artifacts/${appId}/users/${currentUserId}/bills);
+
+const getSettingsDoc = () => doc(db, artifacts/${appId}/users/${currentUserId}/settings, 'guardian');
+
+
+async function loadGuardianSettings() {
+
+if (!currentUserId) return;
+
+try {
+
+const docSnap = await getDoc(getSettingsDoc());
+
+if (docSnap.exists()) {
+
+guardianSettings = docSnap.data();
+
+for (const key in guardianSettings) {
+
+if (elements.settingsForm.elements[key]) {
+
+elements.settingsForm.elements[key].value = guardianSettings[key];
+
+}
+
+}
+
+}
+
+} catch (error) { console.error("Error loading settings:", error); }
+
+}
+
+function loadWards() {
+
+if (!currentUserId) return;
+
+unsubscribeWards();
+
+unsubscribeWards = onSnapshot(getWardsCollection(), snapshot => {
+
+wards = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+renderWards();
+
+if (selectedWardId) elements.wardSelector.value = selectedWardId;
+
+}, error => {
+
+console.error("Error fetching wards:", error);
+
+showNotification('Database Error', 'Could not load wards. Check console for details.', 'error');
+
+});
+
+}
+
+function loadBillsForWard(wardId) {
+
+if (!wardId || !currentUserId) {
+
+bills = [];
+
+renderBills();
+
+return;
+
+}
+
+const q = query(getBillsCollection(), where("wardId", "==", wardId));
+
+unsubscribeBills();
+
+unsubscribeBills = onSnapshot(q, snapshot => {
+
+bills = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+renderBills();
+
+}, error => {
+
+console.error("Error fetching bills:", error);
+
+showNotification('Database Error', 'Could not load bills. Check console for details.', 'error');
+
+});
+
+}
+
+
+function renderWards() {
+
+elements.wardSelector.innerHTML = '<option value="">-- Select a Ward --</option>';
+
+wards.forEach(ward => {
+
+elements.wardSelector.add(new Option(ward.wardName, ward.id));
+
+});
+
+}
+
+function renderBills() {
+
+elements.pendingBillsBody.innerHTML = '';
+
+elements.filedBillsBody.innerHTML = '';
+
+
+const pendingBills = bills.filter(b => b.status === 'Pending');
+
+const filedBills = bills.filter(b => b.status !== 'Pending');
+
+filedBills.sort((a, b) => ({ 'Filed': 0, 'Approved': 1, 'Paid': 2 }[a.status] - { 'Filed': 0, 'Approved': 1, 'Paid': 2 }[b.status]));
+
+elements.noPendingBills.classList.toggle('hidden', pendingBills.length > 0);
+
+pendingBills.forEach(bill => elements.pendingBillsBody.appendChild(createBillRow(bill, 'pending')));
+
+elements.noFiledBills.classList.toggle('hidden', filedBills.length > 0);
+
+filedBills.forEach(bill => elements.filedBillsBody.appendChild(createBillRow(bill, 'filed')));
+
+updateGenerateButtonState();
+
+}
+
+
+function createBillRow(bill, type) {
+
+const tr = document.createElement('tr');
+
+tr.className = "hover:bg-gray-50 text-sm text-gray-700";
+
+const amount = parseFloat(bill.amount).toFixed(2);
+
+if (type === 'pending') {
+
+tr.innerHTML = <td class="p-4 align-top"><input type="checkbox" class="pending-bill-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-bill-id="${bill.id}"></td><td class="p-4 align-top font-medium text-gray-900">${bill.payee}</td><td class="p-4 align-top">${bill.amountType === 'Up To' ? 'Up to ' : ''}$${amount}</td><td class="p-4 align-top"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${bill.expenseType === 'Budget' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">${bill.expenseType}</span></td><td class="p-4 align-top">${bill.description}</td>;
+
+} else {
+
+let statusColor = 'bg-gray-100 text-gray-800';
+
+if(bill.status === 'Filed') statusColor = 'bg-yellow-100 text-yellow-800';
+
+if(bill.status === 'Approved') statusColor = 'bg-green-100 text-green-800';
+
+if(bill.status === 'Paid') statusColor = 'bg-purple-100 text-purple-800';
+
+tr.innerHTML = <td class="p-4">${bill.payee}</td><td class="p-4">$${amount}</td><td class="p-4"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${bill.status}</span></td><td class="p-4">${bill.status === 'Filed' ? <button class="btn-secondary text-xs" data-action="approve" data-bill-id="${bill.id}">Mark Approved</button> : ''}${bill.status === 'Approved' ? <button class="btn-secondary text-xs" data-action="pay" data-bill-id="${bill.id}">Mark Paid</button> : ''}</td>;
+
+}
+
+return tr;
+
+}
+
+
+function setupEventListeners() {
+
+elements.openSettingsBtn.addEventListener('click', () => elements.settingsModal.classList.remove('hidden'));
+
+elements.closeSettingsBtn.addEventListener('click', () => elements.settingsModal.classList.add('hidden'));
+
+elements.settingsForm.addEventListener('submit', handleSaveSettings);
+
+elements.addWardForm.addEventListener('submit', handleAddWard);
+
+elements.wardSelector.addEventListener('change', handleWardSelection);
+
+elements.addBillForm.addEventListener('submit', handleAddBill);
+
+elements.generatePackageBtn.addEventListener('click', () => elements.generateConfirmModal.classList.remove('hidden'));
+
+elements.confirmGenBlank.addEventListener('click', () => handleGeneratePackage(false));
+
+elements.confirmGenGuardian.addEventListener('click', () => handleGeneratePackage(true));
+
+elements.selectAllPending.addEventListener('change', e => {
+
+document.querySelectorAll('.pending-bill-checkbox').forEach(cb => cb.checked = e.target.checked);
+
+updateGenerateButtonState();
+
+});
+
+elements.pendingBillsBody.addEventListener('change', e => {
+
+if (e.target.classList.contains('pending-bill-checkbox')) updateGenerateButtonState();
+
+});
+
+elements.filedBillsBody.addEventListener('click', handleStatusUpdate);
+
+elements.modalCloseBtn.addEventListener('click', hideNotification);
+
+}
+
+async function handleSaveSettings(e) {
+
+e.preventDefault();
+
+const formData = new FormData(e.target);
+
+const settingsData = Object.fromEntries(formData.entries());
+
+await setDoc(getSettingsDoc(), settingsData);
+
+guardianSettings = settingsData;
+
+showNotification('Success', 'Guardian settings have been saved.', 'success');
+
+elements.settingsModal.classList.add('hidden');
+
+}
+
+
+async function handleAddWard(e) {
+
+e.preventDefault();
+
+const wardName = e.target.elements['ward-name'].value.trim();
+
+const caseNumber = e.target.elements['case-number'].value.trim();
+
+if (wardName && caseNumber) {
+
+await addDoc(getWardsCollection(), { wardName, caseNumber });
+
+e.target.reset();
+
+}
+
+}
+
+
+function handleWardSelection(e) {
+
+selectedWardId = e.target.value;
+
+if (selectedWardId) {
+
+selectedWardData = wards.find(w => w.id === selectedWardId);
+
+elements.addBillCard.classList.remove('hidden');
+
+elements.billManagementSection.classList.remove('hidden');
+
+elements.wardBillsView.classList.remove('hidden');
+
+elements.selectedWardName.textContent = selectedWardData.wardName;
+
+elements.selectedCaseNumber.textContent = selectedWardData.caseNumber;
+
+loadBillsForWard(selectedWardId);
+
+} else {
+
+elements.addBillCard.classList.add('hidden');
+
+elements.wardBillsView.classList.add('hidden');
+
+selectedWardId = null;
+
+selectedWardData = {};
+
+}
+
+}
+
+
+async function handleAddBill(e) {
+
+e.preventDefault();
+
+const form = e.target;
+
+const newBill = {
+
+wardId: selectedWardId,
+
+payee: form.elements.payee.value,
+
+amount: form.elements.amount.value,
+
+description: form.elements.description.value,
+
+expenseType: form.elements['expense-type'].value,
+
+amountType: form.elements['amount-type'].value,
+
+status: 'Pending',
+
+createdAt: serverTimestamp()
+
+};
+
+await addDoc(getBillsCollection(), newBill);
+
+form.reset();
+
+}
+
+function updateGenerateButtonState() {
+
+elements.generatePackageBtn.disabled = document.querySelectorAll('.pending-bill-checkbox:checked').length === 0;
+
+}
+
+
+async function handleStatusUpdate(e) {
+
+const button = e.target.closest('button[data-bill-id]');
+
+if (!button) return;
+
+const billId = button.dataset.billId;
+
+const newStatus = button.dataset.action === 'approve' ? 'Approved' : 'Paid';
+
+await updateDoc(doc(getBillsCollection(), billId), { status: newStatus });
+
+}
+
+async function handleGeneratePackage(useGuardianInfo) {
+
+elements.generateConfirmModal.classList.add('hidden');
+
+showSpinner("Generating filing package...");
+
+const billIdsToProcess = Array.from(document.querySelectorAll('.pending-bill-checkbox:checked')).map(cb => cb.dataset.billId);
+
+const billsToProcess = bills.filter(b => billIdsToProcess.includes(b.id));
+
+
+try {
+
+const [appPdfBytes, entryPdfBytes] = await createFilingPdfs(selectedWardData, billsToProcess, useGuardianInfo);
+
+const zip = new JSZip();
+
+zip.file(${selectedWardData.wardName}_Application_15.7.pdf, appPdfBytes);
+
+zip.file(${selectedWardData.wardName}_Entry.pdf, entryPdfBytes);
+
+const zipContent = await zip.generateAsync({ type: "blob" });
+
+const link = document.createElement('a');
+
+link.href = URL.createObjectURL(zipContent);
+
+link.download = ${selectedWardData.wardName}_Filing_Package.zip;
+
+link.click();
+
+URL.revokeObjectURL(link.href);
+
+
+for (const bill of billsToProcess) {
+
+await updateDoc(doc(getBillsCollection(), bill.id), { status: 'Filed' });
+
+}
+
+showNotification('Success', 'Filing package generated successfully!', 'success');
+
+} catch (error) {
+
+showNotification('Error', Could not generate package: ${error.message}, 'error');
+
+} finally {
+
+hideSpinner();
+
+}
+
+}
+
+
+async function createFilingPdfs(ward, bills, useGuardianInfo) {
+
+const proxyUrl = 'https://api.allorigins.win/raw?url=';
+
+const appPdfUrl = ${proxyUrl}https://drive.google.com/uc?export=download&id=1Ahk_D378BbIcoSg3eYmn6CfwuNCXE1TM;
+
+const entryPdfUrl = ${proxyUrl}https://drive.google.com/uc?export=download&id=127vmSIaMmY36D2KU4lALMHWyxJldpT3S;
+
+
+const [appTemplateBytes, entryTemplateBytes] = await Promise.all([
+
+fetch(appPdfUrl).then(res => { if(!res.ok) throw new Error(Failed to fetch Application PDF (status: ${res.status})); return res.arrayBuffer() }),
+
+fetch(entryPdfUrl).then(res => { if(!res.ok) throw new Error(Failed to fetch Entry PDF (status: ${res.status})); return res.arrayBuffer() })
+
+]);
+
+
+const oneTimeBills = bills.filter(b => b.expenseType === 'One-Time');
+
+const budgetBills = bills.filter(b => b.expenseType === 'Budget');
+
+let expenseListString = '';
+
+if (oneTimeBills.length > 0) {
+
+expenseListString += 'ONE-TIME EXPENSES:\n';
+
+expenseListString += oneTimeBills.map(b => {
+
+const amountStr = ${b.amountType === 'Up To' ? 'up to ' : ''}$${parseFloat(b.amount).toFixed(2)};
+
+return - ${b.description} to ${b.payee} for ${amountStr};
+
+}).join('\n') + '\n\n';
+
+}
+
+if (budgetBills.length > 0) {
+
+const now = new Date();
+
+const startMonth = now.toLocaleString('default', { month: 'long' });
+
+const startYear = now.getFullYear();
+
+const endYear = startYear + 1;
+
+expenseListString += BUDGETED EXPENSES (starting ${startMonth} ${startYear} ending ${startMonth} ${endYear}):\n;
+
+expenseListString += budgetBills.map(b => {
+
+const amountStr = ${b.amountType === 'Up To' ? 'up to ' : ''}$${parseFloat(b.amount).toFixed(2)};
+
+return - ${b.description} to ${b.payee} for ${amountStr} per month;
+
+}).join('\n');
+
+}
+
+
+// Fill Application PDF
+
+const appPdfDoc = await PDFDocument.load(appTemplateBytes);
+
+const appForm = appPdfDoc.getForm();
+
+appForm.getTextField('C-Name').setText(ward.wardName);
+
+appForm.getTextField('C_Number').setText(ward.caseNumber);
+
+appForm.getTextField('Text1').setText(expenseListString);
+
+appForm.getCheckBox('Check Box 2').check();
+
+if (useGuardianInfo && guardianSettings) {
+
+appForm.getTextField('gdn_name').setText(guardianSettings.gdn_name || '');
+
+appForm.getTextField('address_1').setText(guardianSettings.address_1 || '');
+
+appForm.getTextField('city').setText(guardianSettings.city || '');
+
+appForm.getTextField('state').setText(guardianSettings.state || '');
+
+appForm.getTextField('zip').setText(guardianSettings.zip || '');
+
+appForm.getTextField('phone').setText(guardianSettings.phone || '');
+
+}
+
+const filledAppBytes = await appPdfDoc.save();
+
+
+// Fill Entry PDF
+
+const entryPdfDoc = await PDFDocument.load(entryTemplateBytes);
+
+const entryForm = entryPdfDoc.getForm();
+
+entryForm.getTextField('C_Name').setText(ward.wardName);
+
+entryForm.getTextField('C_Number').setText(ward.caseNumber);
+
+entryForm.getTextField('Text6').setText(expenseListString);
+
+const filledEntryBytes = await entryPdfDoc.save();
+
+
+return [filledAppBytes, filledEntryBytes];
+
+}
+
+function showNotification(title, message, type = 'info') {
+
+elements.notificationModal.classList.remove('hidden');
+
+elements.modalTitle.textContent = title;
+
+elements.modalMessage.textContent = message;
+
+let icon, bgColor;
+
+if (type === 'success') {
+
+icon = <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>;
+
+bgColor = 'bg-green-100';
+
+} else {
+
+icon = <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+
+bgColor = 'bg-red-100';
+
+}
+
+elements.modalIconContainer.innerHTML = icon;
+
+elements.modalIconContainer.className = mx-auto flex items-center justify-center h-12 w-12 rounded-full ${bgColor};
+
+}
+
+const hideNotification = () => elements.notificationModal.classList.add('hidden');
+
+const showSpinner = msg => { elements.spinnerMessage.textContent = msg; elements.spinnerModal.classList.remove('hidden'); };
+
+const hideSpinner = () => elements.spinnerModal.classList.add('hidden');
+
+// Initial call to start the auth flow
+
+document.addEventListener('DOMContentLoaded', () => onAuthStateChanged(auth, () => {}));
+
+
+</script>
+
+</body>
+
+</html> 
