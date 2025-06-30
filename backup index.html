@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ward Expense Management</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .btn-primary {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            font-weight: 500;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: background-color 0.2s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #4338ca; /* indigo-700 */
+        }
+        .btn-primary:disabled {
+            background-color: #a5b4fc; /* indigo-300 */
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #374151; /* gray-700 */
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db; /* gray-300 */
+        }
+        .btn-danger {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db; /* gray-300 */
+            padding: 0.5rem 0.75rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #4f46e5; /* indigo-600 */
+            box-shadow: 0 0 0 2px #c7d2fe; /* indigo-200 */
+        }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgb(0 0 0 / 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            width: 100%;
+            max-width: 48rem; /* 3xl */
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 9999px;
+            color: #6b7280; /* gray-500 */
+        }
+        .icon-btn:hover {
+            color: #111827; /* gray-900 */
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+        .drop-zone.dragover {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #fff;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Ward Expense Management</h1>
+                <p class="text-gray-500 mt-1">The simple solution for tracking, managing, and preparing text for Form 15.7.</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                 <button id="open-global-view-btn" class="btn-secondary flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                    All Pending
+                </button>
+                <button id="open-settings-btn" class="btn-secondary flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                    Settings
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 space-y-8">
+                <div class="card p-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Manage Wards</h2>
+                    <form id="add-ward-form" class="space-y-4">
+                        <input type="text" id="ward-name" placeholder="Ward's Full Name" class="form-input" required>
+                        <input type="text" id="case-number" placeholder="Case Number" class="form-input" required>
+                        <button type="submit" class="btn-primary w-full">Add Ward</button>
+                    </form>
+                    <div class="mt-6">
+                        <h3 class="text-lg font-medium text-gray-600 mb-2">Select Ward to Manage</h3>
+                        <select id="ward-selector" class="form-select"></select>
+                        <button id="delete-ward-btn" class="btn-danger w-full mt-2 hidden">Delete Selected Ward</button>
+                    </div>
+                </div>
+
+                <div id="add-bill-card" class="card p-6 hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Add New Bill</h2>
+                    <form id="add-bill-form" class="space-y-4">
+                        <fieldset>
+                            <legend class="text-sm font-medium text-gray-700 mb-2">Expense Type</legend>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center"><input id="type-one-time" name="expense-type" type="radio" value="One-Time" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" checked><label for="type-one-time" class="ml-2 block text-sm text-gray-900">One-Time</label></div>
+                                <div class="flex items-center"><input id="type-budget" name="expense-type" type="radio" value="Budget" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="type-budget" class="ml-2 block text-sm text-gray-900">Budget</label></div>
+                            </div>
+                        </fieldset>
+                        <input type="text" id="payee" placeholder="Payee (e.g., AEP Ohio)" class="form-input" required>
+                        <input type="number" id="amount" placeholder="Amount" class="form-input" min="0.01" step="0.01" required>
+                        <fieldset>
+                            <legend class="text-sm font-medium text-gray-700 -mb-1">Amount Type</legend>
+                            <div class="flex items-center space-x-4 pt-1">
+                                <div class="flex items-center"><input id="amount-type-exact" name="amount-type" type="radio" value="Exact" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500" checked><label for="amount-type-exact" class="ml-2 block text-sm text-gray-900">Exact Amount</label></div>
+                                <div class="flex items-center"><input id="amount-type-up-to" name="amount-type" type="radio" value="Up To" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="amount-type-up-to" class="ml-2 block text-sm text-gray-900">Up To</label></div>
+                            </div>
+                        </fieldset>
+                        <textarea id="description" placeholder="Description of expense" class="form-textarea" rows="3" required></textarea>
+                         <div>
+                            <label class="block text-sm font-medium text-gray-700">Attach Invoice (Optional)</label>
+                            <div id="drop-zone" class="drop-zone mt-1">
+                                <p id="drop-zone-text" class="text-gray-500">Drag & drop a file here, or click to select</p>
+                                <input type="file" id="invoice-file" class="hidden" accept=".pdf,.png,.jpg,.jpeg">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary w-full">Add Bill</button>
+                    </form>
+                </div>
+                 <div id="budget-glance-card" class="card p-6 hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Current Budget Items</h2>
+                    <div id="budget-glance-list" class="space-y-3"></div>
+                     <p id="no-budget-items" class="text-center py-4 text-gray-500 hidden">No active budget items.</p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 card p-6 hidden" id="bill-management-section">
+                 <div id="ward-bills-view" class="hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-1">Bills for <span id="selected-ward-name"></span></h2>
+                    <p class="text-sm text-gray-500 font-mono mb-6">Case #: <span id="selected-case-number"></span></p>
+                    <h3 class="text-lg font-semibold text-gray-700">Pending Application</h3>
+                    <div class="overflow-x-auto mt-4">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50"><tr><th class="w-12 px-4 py-3"><input type="checkbox" id="select-all-pending"></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payee</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Added</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th></tr></thead>
+                            <tbody id="pending-bills-body" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                        <p id="no-pending-bills" class="text-center py-8 text-gray-500 hidden">No pending bills.</p>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button id="generate-text-btn" class="btn-primary" disabled>Generate Text & Exhibits</button>
+                    </div>
+                    <div class="mt-10"><h3 class="text-lg font-semibold text-gray-700">Filing History</h3>
+                        <div class="overflow-x-auto mt-4"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payee</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount Type</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expense Type</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th></tr></thead><tbody id="filed-bills-body" class="bg-white divide-y divide-gray-200"></tbody></table><p id="no-filed-bills" class="text-center py-8 text-gray-500 hidden">No filing history.</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="settings-modal" class="modal-backdrop hidden"><div class="modal-content"><h2 class="text-xl font-bold text-gray-800 mb-4">Default Guardian Settings</h2><form id="settings-form" class="space-y-4"><input type="text" id="gdn_name" name="gdn_name" placeholder="Guardian Full Name" class="form-input" required><input type="text" id="address_1" name="address_1" placeholder="Address" class="form-input" required><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><input type="text" id="city" name="city" placeholder="City" class="form-input" required><input type="text" id="state" name="state" placeholder="State" class="form-input" required><input type="text" id="zip" name="zip" placeholder="Zip Code" class="form-input" required></div><input type="tel" id="phone" name="phone" placeholder="Telephone Number" class="form-input" required><div class="flex justify-end space-x-3 pt-4"><button type="button" id="close-settings-btn" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Save Settings</button></div></form></div></div>
+
+    <div id="text-output-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Generated Text for Application</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Ward Name</label>
+                    <p id="output-ward-name" class="mt-1 text-lg font-semibold text-gray-900"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Case Number</label>
+                    <p id="output-case-number" class="mt-1 font-mono text-gray-900"></p>
+                </div>
+                <div>
+                    <label for="output-expense-text" class="block text-sm font-medium text-gray-700">Expense Details</label>
+                    <textarea id="output-expense-text" readonly class="form-textarea mt-1 w-full h-64 bg-gray-50 cursor-text"></textarea>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="close-output-btn" class="btn-secondary">Close</button>
+                <button id="copy-and-mark-drafted-btn" class="btn-primary">Copy Text & Mark as Drafted</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-bill-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-lg">
+             <h2 class="text-xl font-semibold text-gray-700 mb-4">Edit Bill</h2>
+             <form id="edit-bill-form" class="space-y-4">
+                 <input type="hidden" id="edit-bill-id">
+                 <fieldset>
+                     <legend class="text-sm font-medium text-gray-700 mb-2">Expense Type</legend>
+                     <div class="flex items-center space-x-4">
+                         <div class="flex items-center"><input id="edit-type-one-time" name="edit-expense-type" type="radio" value="One-Time" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="edit-type-one-time" class="ml-2 block text-sm text-gray-900">One-Time</label></div>
+                         <div class="flex items-center"><input id="edit-type-budget" name="edit-expense-type" type="radio" value="Budget" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="edit-type-budget" class="ml-2 block text-sm text-gray-900">Budget</label></div>
+                     </div>
+                 </fieldset>
+                 <input type="text" id="edit-payee" placeholder="Payee" class="form-input" required>
+                 <input type="number" id="edit-amount" placeholder="Amount" class="form-input" min="0.01" step="0.01" required>
+                 <fieldset>
+                     <legend class="text-sm font-medium text-gray-700 -mb-1">Amount Type</legend>
+                     <div class="flex items-center space-x-4 pt-1">
+                         <div class="flex items-center"><input id="edit-amount-type-exact" name="edit-amount-type" type="radio" value="Exact" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="edit-amount-type-exact" class="ml-2 block text-sm text-gray-900">Exact Amount</label></div>
+                         <div class="flex items-center"><input id="edit-amount-type-up-to" name="edit-amount-type" type="radio" value="Up To" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"><label for="edit-amount-type-up-to" class="ml-2 block text-sm text-gray-900">Up To</label></div>
+                     </div>
+                 </fieldset>
+                 <textarea id="edit-description" placeholder="Description of expense" class="form-textarea" rows="3" required></textarea>
+                 <div>
+                    <label for="edit-status" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select id="edit-status" name="edit-status" class="form-select mt-1">
+                        <option>Pending</option>
+                        <option>Drafted</option>
+                        <option>Filed</option>
+                        <option>Approved</option>
+                        <option>Paid</option>
+                        <option>Error</option>
+                    </select>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" id="close-edit-modal-btn" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+             </form>
+        </div>
+    </div>
+
+     <div id="delete-confirm-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-sm">
+            <h3 class="text-lg font-medium text-center text-gray-900">Are you sure?</h3>
+            <p class="mt-2 text-sm text-center text-gray-600">Do you really want to delete this bill? This action cannot be undone.</p>
+            <div class="flex justify-center space-x-4 mt-6">
+                <button id="cancel-delete-btn" class="btn-secondary">Cancel</button>
+                <button id="confirm-delete-btn" class="btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+    
+     <div id="delete-ward-confirm-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-sm">
+            <h3 class="text-lg font-medium text-center text-gray-900">Delete Ward?</h3>
+            <p class="mt-2 text-sm text-center text-gray-600">This will permanently delete the ward and <strong>all of its associated bills and history</strong>. This action cannot be undone.</p>
+            <div class="flex justify-center space-x-4 mt-6">
+                <button id="cancel-ward-delete-btn" class="btn-secondary">Cancel</button>
+                <button id="confirm-ward-delete-btn" class="btn-danger">Yes, Delete Everything</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="history-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-2xl">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Bill History</h2>
+            <div id="history-bill-details" class="mb-6 space-y-2 text-sm"></div>
+            <ul id="history-log-list" class="space-y-4 border-l-2 border-gray-200 ml-2"></ul>
+            <div class="mt-6 flex justify-end">
+                <button id="close-history-modal-btn" class="btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-view-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-6xl">
+            <div class="flex justify-between items-center mb-4">
+                 <h2 class="text-2xl font-bold text-gray-800">All Pending Bills</h2>
+                 <button id="close-global-view-btn" class="icon-btn">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                 </button>
+            </div>
+            <div id="global-view-content" class="space-y-8 max-h-[80vh] overflow-y-auto pr-4">
+                <!-- Content will be generated here -->
+            </div>
+        </div>
+    </div>
+
+     <div id="spinner-modal" class="modal-backdrop hidden"><div class="text-center text-white"><div class="spinner mx-auto"></div><p id="spinner-message" class="mt-4 text-lg font-semibold"></p></div></div>
+
+
+    <script type="module">
+        // This script now uses the modular Firebase v9+ SDK
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, where, updateDoc, deleteDoc, serverTimestamp, arrayUnion, Timestamp, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js';
+        
+        let db, auth, storage;
+
+        try {
+            // This is the standard initialization for a deployed Firebase Hosting app
+            // It will fail in local development, and the catch block will run.
+            const app = firebase.app();
+            db = firebase.firestore();
+            auth = firebase.auth();
+            storage = firebase.storage();
+        } catch (e) {
+            // This is the fallback for local development & preview where the above fails
+            console.warn("Could not initialize Firebase from Hosting. Falling back to local config for development.");
+            const firebaseConfig = {
+                apiKey: "AIzaSyDzZxoSewKJ3MV-MxMOm9JUSAzSIiSaeyY",
+                authDomain: "app-to-expend.firebaseapp.com",
+                projectId: "app-to-expend",
+                storageBucket: "app-to-expend.appspot.com",
+                messagingSenderId: "594048848055",
+                appId: "1:594048848055:web:7a353bfa1f419f24367d32",
+                measurementId: "G-JPRRTDNGPF"
+            };
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            storage = getStorage(app);
+        }
+        
+        const { PDFDocument } = PDFLib;
+
+        let currentUserId = null;
+        let wards = [];
+        let bills = [];
+        let guardianSettings = {};
+        let selectedWardId = null;
+        let selectedWardData = {};
+        let billToDeleteId = null; 
+        let fileToUpload = null;
+        let unsubscribeWards = () => {};
+        let unsubscribeBills = () => {};
+        const appId = 'ward-expense-app'; 
+        
+        const elements = {
+            openSettingsBtn: document.getElementById('open-settings-btn'),
+            openGlobalViewBtn: document.getElementById('open-global-view-btn'),
+            settingsModal: document.getElementById('settings-modal'),
+            settingsForm: document.getElementById('settings-form'),
+            closeSettingsBtn: document.getElementById('close-settings-btn'),
+            addWardForm: document.getElementById('add-ward-form'),
+            wardSelector: document.getElementById('ward-selector'),
+            deleteWardBtn: document.getElementById('delete-ward-btn'),
+            addBillCard: document.getElementById('add-bill-card'),
+            addBillForm: document.getElementById('add-bill-form'),
+            budgetGlanceCard: document.getElementById('budget-glance-card'),
+            budgetGlanceList: document.getElementById('budget-glance-list'),
+            noBudgetItems: document.getElementById('no-budget-items'),
+            billManagementSection: document.getElementById('bill-management-section'),
+            wardBillsView: document.getElementById('ward-bills-view'),
+            selectedWardName: document.getElementById('selected-ward-name'),
+            selectedCaseNumber: document.getElementById('selected-case-number'),
+            pendingBillsBody: document.getElementById('pending-bills-body'),
+            filedBillsBody: document.getElementById('filed-bills-body'),
+            noPendingBills: document.getElementById('no-pending-bills'),
+            noFiledBills: document.getElementById('no-filed-bills'),
+            selectAllPending: document.getElementById('select-all-pending'),
+            generatePackageBtn: document.getElementById('generate-package-btn'),
+            generateTextBtn: document.getElementById('generate-text-btn'),
+            editBillModal: document.getElementById('edit-bill-modal'),
+            editBillForm: document.getElementById('edit-bill-form'),
+            closeEditModalBtn: document.getElementById('close-edit-modal-btn'),
+            deleteConfirmModal: document.getElementById('delete-confirm-modal'),
+            cancelDeleteBtn: document.getElementById('cancel-delete-btn'),
+            confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
+            deleteWardConfirmModal: document.getElementById('delete-ward-confirm-modal'),
+            cancelWardDeleteBtn: document.getElementById('cancel-ward-delete-btn'),
+            confirmWardDeleteBtn: document.getElementById('confirm-ward-delete-btn'),
+            historyModal: document.getElementById('history-modal'),
+            historyBillDetails: document.getElementById('history-bill-details'),
+            historyLogList: document.getElementById('history-log-list'),
+            closeHistoryModalBtn: document.getElementById('close-history-modal-btn'),
+            globalViewModal: document.getElementById('global-view-modal'),
+            globalViewContent: document.getElementById('global-view-content'),
+            closeGlobalViewBtn: document.getElementById('close-global-view-btn'),
+            dropZone: document.getElementById('drop-zone'),
+            dropZoneText: document.getElementById('drop-zone-text'),
+            invoiceFile: document.getElementById('invoice-file'),
+            spinnerModal: document.getElementById('spinner-modal'),
+            spinnerMessage: document.getElementById('spinner-message'),
+            textOutputModal: document.getElementById('text-output-modal'),
+            outputWardName: document.getElementById('output-ward-name'),
+            outputCaseNumber: document.getElementById('output-case-number'),
+            outputExpenseText: document.getElementById('output-expense-text'),
+            closeOutputBtn: document.getElementById('close-output-btn'),
+            copyAndMarkDraftedBtn: document.getElementById('copy-and-mark-drafted-btn'),
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                if (currentUserId !== user.uid) { 
+                    currentUserId = user.uid;
+                    initializeAppLogic();
+                }
+            } else {
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Anonymous sign-in failed:", error);
+                }
+            }
+        });
+        
+        async function initializeAppLogic() {
+            if (!currentUserId) return;
+            setupEventListeners();
+            await loadGuardianSettings();
+            loadWards();
+            loadAllBills();
+        }
+
+        const getWardsCollection = () => collection(db, `artifacts/${appId}/users/${currentUserId}/wards`);
+        const getBillsCollection = () => collection(db, `artifacts/${appId}/users/${currentUserId}/bills`);
+        const getSettingsDoc = () => doc(db, `artifacts/${appId}/users/${currentUserId}/settings`, 'guardian');
+
+        async function loadGuardianSettings() {
+            if (!currentUserId) return;
+            try {
+                const docSnap = await getDoc(getSettingsDoc());
+                if (docSnap.exists()) {
+                    guardianSettings = docSnap.data();
+                    for (const key in guardianSettings) {
+                        if (elements.settingsForm.elements[key]) {
+                            elements.settingsForm.elements[key].value = guardianSettings[key];
+                        }
+                    }
+                }
+            } catch (error) { 
+                console.error("Error loading settings:", error); 
+            }
+        }
+        
+        function loadWards() {
+            if (!currentUserId) return;
+            unsubscribeWards(); 
+            unsubscribeWards = onSnapshot(getWardsCollection(), snapshot => {
+                wards = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderWards();
+                if (selectedWardId) elements.wardSelector.value = selectedWardId;
+            }, error => console.error("Error fetching wards:", error));
+        }
+        
+        function loadAllBills() {
+             if (!currentUserId) return;
+            unsubscribeBills();
+            unsubscribeBills = onSnapshot(getBillsCollection(), snapshot => {
+                bills = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                if(selectedWardId) {
+                    renderBills();
+                }
+            }, error => console.error("Error fetching bills:", error));
+        }
+
+        const formatDate = (timestamp) => {
+            if (!timestamp || !timestamp.toDate) return 'N/A';
+            const date = timestamp.toDate();
+            return date.toLocaleDateString('en-US');
+        }
+
+        function renderWards() {
+            const oldValue = elements.wardSelector.value;
+            elements.wardSelector.innerHTML = '<option value="">-- Select a Ward --</option>';
+            wards.sort((a, b) => a.wardName.localeCompare(b.wardName));
+            wards.forEach(ward => {
+                elements.wardSelector.add(new Option(ward.wardName, ward.id));
+            });
+            elements.wardSelector.value = oldValue;
+        }
+        
+        function renderBills() {
+            elements.pendingBillsBody.innerHTML = '';
+            elements.filedBillsBody.innerHTML = '';
+            const pendingBills = bills.filter(b => b.wardId === selectedWardId && b.status === 'Pending');
+            const filedBills = bills.filter(b => b.wardId === selectedWardId && b.status !== 'Pending');
+            
+            pendingBills.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+            filedBills.sort((a, b) => {
+                const statusOrder = { 'Drafted': 0, 'Filed': 1, 'Approved': 2, 'Paid': 3, 'Error': 4 };
+                const statusComparison = (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+                if (statusComparison !== 0) return statusComparison;
+                if (a.history && a.history.length > 0 && b.history && b.history.length > 0) {
+                    const aDate = a.history[a.history.length - 1].date;
+                    const bDate = b.history[b.history.length - 1].date;
+                    if (aDate && bDate) return bDate.seconds - aDate.seconds;
+                }
+                return 0;
+            });
+
+            elements.noPendingBills.classList.toggle('hidden', pendingBills.length > 0);
+            pendingBills.forEach(bill => elements.pendingBillsBody.appendChild(createBillRow(bill, 'pending')));
+            
+            elements.noFiledBills.classList.toggle('hidden', filedBills.length > 0);
+            filedBills.forEach(bill => elements.filedBillsBody.appendChild(createBillRow(bill, 'filed')));
+            renderBudgetGlance();
+            updateGenerateButtonState();
+        }
+
+        function createBillRow(bill, type) {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50 text-sm text-gray-700 align-top";
+            const amount = parseFloat(bill.amount).toFixed(2);
+            
+            const invoiceIcon = bill.exhibitUrl 
+                ? `<a href="${bill.exhibitUrl}" target="_blank" class="icon-btn text-blue-600 hover:text-blue-800" title="View Invoice">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v1a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v1a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" /></svg>
+                   </a>`
+                : `<span class="icon-btn text-gray-300 cursor-not-allowed" title="No Invoice Attached">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v1a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v1a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" /></svg>
+                   </span>`;
+            const editDeleteIcons = `
+                <div class="flex items-center space-x-2 justify-end">
+                    <button class="icon-btn" data-action="history" data-bill-id="${bill.id}" title="View History">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <button class="icon-btn" data-action="edit" data-bill-id="${bill.id}" title="Edit Bill">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <button class="icon-btn" data-action="delete" data-bill-id="${bill.id}" title="Delete Bill">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                    </button>
+                </div>`;
+
+            if (type === 'pending') {
+                tr.innerHTML = `
+                    <td class="p-4"><input type="checkbox" class="pending-bill-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-bill-id="${bill.id}"></td>
+                    <td class="p-4 font-medium text-gray-900">${bill.payee}</td>
+                    <td class="p-4">${bill.amountType === 'Up To' ? 'Up to ' : ''}$${amount}</td>
+                    <td class="p-4">${formatDate(bill.createdAt)}</td>
+                    <td class="p-4">${bill.description}</td>
+                    <td class="p-4">${invoiceIcon}</td>
+                    <td class="p-4">${editDeleteIcons}</td>`;
+            } else { // 'filed' type
+                let statusColor = 'bg-gray-100 text-gray-800';
+                if(bill.status === 'Drafted') statusColor = 'bg-blue-100 text-blue-800';
+                if(bill.status === 'Filed') statusColor = 'bg-yellow-100 text-yellow-800';
+                if(bill.status === 'Approved') statusColor = 'bg-green-100 text-green-800';
+                if(bill.status === 'Paid') statusColor = 'bg-purple-100 text-purple-800';
+                if(bill.status === 'Error') statusColor = 'bg-red-100 text-red-800';
+
+                let actionsHtml = '';
+                if (bill.status === 'Drafted') {
+                    actionsHtml = `<button class="btn-secondary text-xs" data-action="file" data-bill-id="${bill.id}">Mark Filed</button>`;
+                } else if (bill.status === 'Filed') {
+                    actionsHtml = `
+                        <button class="btn-secondary text-xs mb-2 w-full text-left" data-action="approve" data-bill-id="${bill.id}">Mark Approved</button>
+                        <button class="btn-secondary text-xs w-full text-left bg-red-100 text-red-800 hover:bg-red-200" data-action="error" data-bill-id="${bill.id}">Mark Error</button>
+                    `;
+                } else if (bill.status === 'Approved') {
+                    actionsHtml = `<button class="btn-secondary text-xs" data-action="pay" data-bill-id="${bill.id}">Mark Paid</button>`;
+                }
+                const lastStatusDate = bill.history && bill.history.length > 0 ? formatDate(bill.history[bill.history.length-1].date) : 'N/A';
+                tr.innerHTML = `
+                    <td class="p-4">${bill.payee}</td>
+                    <td class="p-4">${bill.amountType}</td>
+                    <td class="p-4">$${amount}</td>
+                    <td class="p-4">${bill.expenseType}</td>
+                    <td class="p-4"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${bill.status}</span></td>
+                    <td class="p-4">${lastStatusDate}</td>
+                    <td class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>${actionsHtml}</div>
+                            ${editDeleteIcons}
+                        </div>
+                    </td>
+                     <td class="p-4">${invoiceIcon}</td>`;
+            }
+            return tr;
+        }
+        
+        function renderBudgetGlance() {
+            const budgetBills = bills.filter(b => b.wardId === selectedWardId && b.expenseType === 'Budget' && b.status === 'Approved');
+            elements.noBudgetItems.classList.toggle('hidden', budgetBills.length > 0);
+            elements.budgetGlanceList.innerHTML = '';
+            budgetBills.forEach(bill => {
+                const approvedEntry = bill.history?.find(h => h.status === 'Approved');
+                if (!approvedEntry || !approvedEntry.date) return;
+                const startDate = approvedEntry.date.toDate();
+                const expiryDate = new Date(startDate);
+                expiryDate.setFullYear(startDate.getFullYear() + 1);
+                const isExpired = new Date() > expiryDate;
+                const colorClass = isExpired ? 'text-red-500' : 'text-green-600';
+                const budgetItemDiv = document.createElement('div');
+                budgetItemDiv.className = 'text-sm';
+                budgetItemDiv.innerHTML = `<p class="font-medium text-gray-800">${bill.payee} - ${bill.amountType} $${parseFloat(bill.amount).toFixed(2)} (Monthly)</p><p class="text-gray-500">Expires: <span class="${colorClass}">${expiryDate.toLocaleDateString()}</span></p>`;
+                elements.budgetGlanceList.appendChild(budgetItemDiv);
+            });
+        }
+
+        function setupEventListeners() {
+            elements.openSettingsBtn.addEventListener('click', () => elements.settingsModal.classList.remove('hidden'));
+            elements.closeSettingsBtn.addEventListener('click', () => elements.settingsModal.classList.add('hidden'));
+            elements.openGlobalViewBtn.addEventListener('click', renderGlobalView);
+            elements.closeGlobalViewBtn.addEventListener('click', () => elements.globalViewModal.classList.add('hidden'));
+            elements.settingsForm.addEventListener('submit', handleSaveSettings);
+            elements.addWardForm.addEventListener('submit', handleAddWard);
+            elements.wardSelector.addEventListener('change', handleWardSelection);
+            elements.addBillForm.addEventListener('submit', handleAddBill);
+            elements.generatePackageBtn.addEventListener('click', handleGeneratePackage);
+            elements.generateTextBtn.addEventListener('click', handleGenerateText);
+            elements.selectAllPending.addEventListener('change', e => {
+                document.querySelectorAll('.pending-bill-checkbox').forEach(cb => cb.checked = e.target.checked);
+                updateGenerateButtonState();
+            });
+            elements.pendingBillsBody.addEventListener('change', e => {
+                if (e.target.classList.contains('pending-bill-checkbox')) {
+                    updateGenerateButtonState();
+                }
+            });
+            elements.pendingBillsBody.addEventListener('click', handleBillAction);
+            elements.filedBillsBody.addEventListener('click', handleBillAction);
+            elements.globalViewContent.addEventListener('click', handleBillAction);
+            elements.closeEditModalBtn.addEventListener('click', () => elements.editBillModal.classList.add('hidden'));
+            elements.editBillForm.addEventListener('submit', handleUpdateBill);
+            elements.cancelDeleteBtn.addEventListener('click', () => elements.deleteConfirmModal.classList.add('hidden'));
+            elements.confirmDeleteBtn.addEventListener('click', handleDeleteBill);
+            elements.deleteWardBtn.addEventListener('click', () => elements.deleteWardConfirmModal.classList.remove('hidden'));
+            elements.cancelWardDeleteBtn.addEventListener('click', () => elements.deleteWardConfirmModal.classList.add('hidden'));
+            elements.confirmWardDeleteBtn.addEventListener('click', handleDeleteWard);
+            elements.closeHistoryModalBtn.addEventListener('click', () => elements.historyModal.classList.add('hidden'));
+            elements.closeOutputBtn.addEventListener('click', () => elements.textOutputModal.classList.add('hidden'));
+            elements.copyAndMarkDraftedBtn.addEventListener('click', handleCopyAndMarkDrafted);
+
+            const dropZone = elements.dropZone;
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    elements.invoiceFile.files = e.dataTransfer.files;
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+            dropZone.addEventListener('click', () => elements.invoiceFile.click());
+            elements.invoiceFile.addEventListener('change', (e) => {
+                 if (e.target.files.length) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+        }
+        
+        async function handleSaveSettings(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const settingsData = Object.fromEntries(formData.entries());
+            await setDoc(getSettingsDoc(), settingsData);
+            guardianSettings = settingsData;
+            elements.settingsModal.classList.add('hidden');
+        }
+
+        async function handleAddWard(e) {
+            e.preventDefault();
+            const wardName = e.target.elements['ward-name'].value.trim();
+            const caseNumber = e.target.elements['case-number'].value.trim();
+            if (wardName && caseNumber) {
+                await addDoc(getWardsCollection(), { wardName, caseNumber });
+                e.target.reset();
+            }
+        }
+
+        function handleWardSelection(e) {
+            selectedWardId = e.target.value;
+             elements.deleteWardBtn.classList.toggle('hidden', !selectedWardId);
+            if (selectedWardId) {
+                selectedWardData = wards.find(w => w.id === selectedWardId);
+                elements.addBillCard.classList.remove('hidden');
+                elements.budgetGlanceCard.classList.remove('hidden');
+                elements.billManagementSection.classList.remove('hidden');
+                elements.wardBillsView.classList.remove('hidden');
+                elements.selectedWardName.textContent = selectedWardData.wardName;
+                elements.selectedCaseNumber.textContent = selectedWardData.caseNumber;
+                renderBills();
+            } else {
+                elements.addBillCard.classList.add('hidden');
+                elements.budgetGlanceCard.classList.add('hidden');
+                elements.wardBillsView.classList.add('hidden');
+                elements.billManagementSection.classList.add('hidden');
+                selectedWardId = null;
+                selectedWardData = {};
+                bills = [];
+                renderBills();
+            }
+        }
+        
+        function handleFileSelect(file) {
+            if (!file) return;
+            fileToUpload = file;
+            elements.dropZoneText.textContent = `Selected: ${file.name}`;
+            elements.dropZone.classList.add('border-indigo-600');
+        }
+
+        async function handleAddBill(e) {
+            e.preventDefault();
+            const form = e.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+            try {
+                let exhibitUrl = '';
+                if (fileToUpload) {
+                    const storageRef = ref(storage, `invoices/${currentUserId}/${Date.now()}_${fileToUpload.name}`);
+                    const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+                    await uploadTask;
+                    exhibitUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                }
+                
+                const newBill = {
+                    wardId: selectedWardId,
+                    payee: form.elements.payee.value.trim(),
+                    amount: form.elements.amount.value,
+                    description: form.elements.description.value.trim(),
+                    expenseType: form.elements['expense-type'].value,
+                    amountType: form.elements['amount-type'].value,
+                    status: 'Pending',
+                    createdAt: serverTimestamp(),
+                    history: [],
+                    exhibitUrl: exhibitUrl
+                };
+                await addDoc(getBillsCollection(), newBill);
+            } catch (error) {
+                console.error("Add bill failed:", error);
+                alert("Failed to add bill. Please check console for details.");
+            } finally {
+                form.reset();
+                fileToUpload = null;
+                elements.dropZoneText.textContent = 'Drag & drop a file here, or click to select';
+                elements.dropZone.classList.remove('border-indigo-600');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Add Bill';
+            }
+        }
+        
+        function updateGenerateButtonState() {
+            const hasSelection = document.querySelectorAll('.pending-bill-checkbox:checked').length > 0;
+            elements.generatePackageBtn.disabled = !hasSelection;
+            elements.generateTextBtn.disabled = !hasSelection;
+        }
+        
+        function handleBillAction(e) {
+            const button = e.target.closest('button[data-bill-id]');
+            if (!button) return;
+
+            const billId = button.dataset.billId;
+            const action = button.dataset.action;
+            
+            if (action === 'edit') showEditModal(billId);
+            else if (action === 'delete') showDeleteConfirmModal(billId);
+            else if (action === 'history') showHistoryModal(billId);
+            else if (action === 'go-to-ward') {
+                elements.wardSelector.value = button.dataset.wardId;
+                elements.wardSelector.dispatchEvent(new Event('change'));
+                elements.globalViewModal.classList.add('hidden');
+            }
+            else handleStatusUpdate(billId, action);
+        }
+
+        async function handleStatusUpdate(billId, action) {
+            let newStatus = '';
+            switch(action) {
+                case 'file': newStatus = 'Filed'; break;
+                case 'approve': newStatus = 'Approved'; break;
+                case 'error': newStatus = 'Error'; break;
+                case 'pay': newStatus = 'Paid'; break;
+                default: return;
+            }
+            await updateDoc(doc(getBillsCollection(), billId), { 
+                status: newStatus,
+                history: arrayUnion({ status: newStatus, date: Timestamp.fromDate(new Date()) })
+            });
+        }
+        
+        function showEditModal(billId) {
+            const bill = bills.find(b => b.id === billId);
+            if (!bill) return;
+
+            const form = elements.editBillForm;
+            form.elements['edit-bill-id'].value = bill.id;
+            form.elements['edit-payee'].value = bill.payee;
+            form.elements['edit-amount'].value = bill.amount;
+            form.elements['edit-description'].value = bill.description;
+            form.elements['edit-expense-type'].value = bill.expenseType;
+            form.elements['edit-amount-type'].value = bill.amountType;
+            form.elements['edit-status'].value = bill.status;
+
+            elements.editBillModal.classList.remove('hidden');
+        }
+
+        async function handleUpdateBill(e) {
+            e.preventDefault();
+            const form = e.target;
+            const billId = form.elements['edit-bill-id'].value;
+            const originalBill = bills.find(b => b.id === billId);
+            
+            const newStatus = form.elements['edit-status'].value;
+            const statusChanged = newStatus !== originalBill.status;
+
+            const updatedData = {
+                payee: form.elements['edit-payee'].value,
+                amount: form.elements['edit-amount'].value,
+                description: form.elements['edit-description'].value,
+                expenseType: form.elements['edit-expense-type'].value,
+                amountType: form.elements['edit-amount-type'].value,
+                status: newStatus,
+            };
+
+            if (statusChanged) {
+                updatedData.history = arrayUnion({ status: newStatus, date: Timestamp.fromDate(new Date()) });
+            }
+
+            await updateDoc(doc(getBillsCollection(), billId), updatedData);
+            elements.editBillModal.classList.add('hidden');
+        }
+
+        function showDeleteConfirmModal(billId) {
+            billToDeleteId = billId;
+            elements.deleteConfirmModal.classList.remove('hidden');
+        }
+
+        async function handleDeleteBill() {
+            if (billToDeleteId) {
+                await deleteDoc(doc(getBillsCollection(), billToDeleteId));
+                billToDeleteId = null;
+                elements.deleteConfirmModal.classList.add('hidden');
+            }
+        }
+        
+         async function handleDeleteWard() {
+            if (!selectedWardId) return;
+
+            showSpinner("Deleting ward and all associated bills...");
+
+            try {
+                const billsQuery = query(getBillsCollection(), where("wardId", "==", selectedWardId));
+                const billsSnapshot = await getDocs(billsQuery);
+                const deletePromises = [];
+                billsSnapshot.forEach((billDoc) => {
+                    deletePromises.push(deleteDoc(billDoc.ref));
+                });
+                await Promise.all(deletePromises);
+                await deleteDoc(doc(getWardsCollection(), selectedWardId));
+            } catch (error) {
+                console.error("Error deleting ward:", error);
+                alert("Failed to delete ward and associated bills.");
+            } finally {
+                elements.deleteWardConfirmModal.classList.add('hidden');
+                handleWardSelection({ target: { value: '' } }); // Reset view
+                hideSpinner();
+            }
+        }
+        
+        function showHistoryModal(billId) {
+            const bill = bills.find(b => b.id === billId);
+            if (!bill) return;
+
+            elements.historyBillDetails.innerHTML = `
+                <p><span class="font-medium">Payee:</span> ${bill.payee}</p>
+                <p><span class="font-medium">Amount:</span> ${bill.amountType} $${parseFloat(bill.amount).toFixed(2)}</p>
+                <p><span class="font-medium">Type:</span> ${bill.expenseType}</p>
+                <p><span class="font-medium">Description:</span> ${bill.description}</p>
+            `;
+            
+            elements.historyLogList.innerHTML = '';
+            if (bill.history && bill.history.length > 0) {
+                 // Sort history chronologically
+                const sortedHistory = [...bill.history].sort((a,b) => (a.date?.seconds || 0) - (b.date?.seconds || 0));
+
+                sortedHistory.forEach(log => {
+                    const li = document.createElement('li');
+                    li.className = "relative pl-6 pb-6";
+                    li.innerHTML = `
+                        <div class="absolute w-4 h-4 bg-blue-500 rounded-full -left-2 top-1 border-4 border-white"></div>
+                        <p class="font-semibold text-gray-800">${log.status}</p>
+                        <p class="text-sm text-gray-500">${formatDate(log.date)}</p>
+                    `;
+                    elements.historyLogList.appendChild(li);
+                });
+            } else {
+                 elements.historyLogList.innerHTML = '<li>No history recorded for this item.</li>';
+            }
+
+            elements.historyModal.classList.remove('hidden');
+        }
+
+        function renderGlobalView() {
+            elements.globalViewContent.innerHTML = '';
+            const wardColors = ['bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-purple-100', 'bg-pink-100'];
+            let colorIndex = 0;
+
+            wards.forEach(ward => {
+                const pendingBillsForWard = bills.filter(b => b.wardId === ward.id && b.status === 'Pending');
+                if (pendingBillsForWard.length === 0) return;
+
+                const wardDiv = document.createElement('div');
+                const bgColor = wardColors[colorIndex % wardColors.length];
+                colorIndex++;
+                
+                wardDiv.innerHTML = `
+                    <div class="${bgColor} p-3 rounded-lg flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">${ward.wardName}</h3>
+                            <p class="text-sm font-mono text-gray-600">${ward.caseNumber}</p>
+                        </div>
+                        <button class="btn-secondary text-sm" data-action="go-to-ward" data-ward-id="${ward.id}">Manage Ward</button>
+                    </div>
+                    <div class="overflow-x-auto mt-2">
+                         <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payee</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Added</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th></tr></thead>
+                            <tbody id="global-pending-${ward.id}"></tbody>
+                        </table>
+                    </div>
+                `;
+                elements.globalViewContent.appendChild(wardDiv);
+                
+                const tbody = document.getElementById(`global-pending-${ward.id}`);
+                pendingBillsForWard.forEach(bill => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50 text-sm text-gray-700 align-top";
+                    const amount = parseFloat(bill.amount).toFixed(2);
+                     const invoiceIcon = bill.exhibitUrl 
+                        ? `<a href="${bill.exhibitUrl}" target="_blank" class="icon-btn text-blue-600 hover:text-blue-800" title="View Invoice">
+                               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v1a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v1a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" /></svg>
+                           </a>`
+                        : `<span class="icon-btn text-gray-300 cursor-not-allowed" title="No Invoice Attached">
+                               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v1a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v1a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" /></svg>
+                           </span>`;
+
+                    const editDeleteIcons = `
+                        <div class="flex items-center space-x-2 justify-end">
+                            <button class="icon-btn" data-action="edit" data-bill-id="${bill.id}" title="Edit Bill"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                            <button class="icon-btn" data-action="delete" data-bill-id="${bill.id}" title="Delete Bill"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                        </div>`;
+
+                    tr.innerHTML = `
+                        <td class="p-4 font-medium text-gray-900">${bill.payee}</td>
+                        <td class="p-4">${bill.amountType === 'Up To' ? 'Up to ' : ''}$${amount}</td>
+                        <td class="p-4">${formatDate(bill.createdAt)}</td>
+                        <td class="p-4">${invoiceIcon}</td>
+                        <td class="p-4">${editDeleteIcons}</td>`;
+                    tbody.appendChild(tr);
+                });
+            });
+            
+            elements.globalViewModal.classList.remove('hidden');
+        }
+        
+        function handleGenerateText() {
+            const billsToProcess = Array.from(document.querySelectorAll('.pending-bill-checkbox:checked'))
+                .map(cb => bills.find(b => b.id === cb.dataset.billId));
+            
+            const oneTimeBills = billsToProcess.filter(b => b.expenseType === 'One-Time');
+            const budgetBills = billsToProcess.filter(b => b.expenseType === 'Budget');
+            
+            let expenseText = '';
+
+            if (oneTimeBills.length > 0) {
+                expenseText += oneTimeBills.map(b => `${b.expenseType} ${b.amountType === 'Up To' ? 'up to ' : ''}$${parseFloat(b.amount).toFixed(2)} to ${b.payee} for ${b.description}`).join('\n');
+            }
+
+            if (budgetBills.length > 0) {
+                if (expenseText.length > 0) expenseText += '\n\n';
+                const now = new Date();
+                const startMonth = now.toLocaleString('default', { month: 'long' });
+                const startYear = now.getFullYear();
+                expenseText += `For the period beginning ${startMonth} ${startYear} and ending ${startMonth} ${startYear + 1}.\n`;
+                expenseText += budgetBills.map(b => `Budget ${b.amountType === 'Up To' ? 'up to ' : ''}$${parseFloat(b.amount).toFixed(2)} to ${b.payee} for ${b.description} per month`).join('\n');
+            }
+
+            elements.outputWardName.textContent = selectedWardData.wardName;
+            elements.outputCaseNumber.textContent = selectedWardData.caseNumber;
+            elements.outputExpenseText.value = expenseText.trim();
+            elements.textOutputModal.classList.remove('hidden');
+
+            const exhibitBills = billsToProcess.filter(b => b.exhibitUrl);
+            if(exhibitBills.length > 0) {
+                const zip = new JSZip();
+                const exhibitFetches = exhibitBills.map(bill => 
+                    fetch(bill.exhibitUrl).then(res => res.blob()).then(blob => ({name: bill.payee + '_invoice.pdf', blob: blob}))
+                );
+                Promise.all(exhibitFetches).then(exhibits => {
+                    exhibits.forEach(exhibit => zip.file(exhibit.name, exhibit.blob));
+                    zip.generateAsync({ type: "blob" }).then(zipContent => {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(zipContent);
+                        link.download = `${selectedWardData.wardName}_Exhibits.zip`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(link.href);
+                    });
+                });
+            }
+        }
+
+         async function handleCopyAndMarkDrafted() {
+            const textToCopy = elements.outputExpenseText.value;
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const billIdsToProcess = Array.from(document.querySelectorAll('.pending-bill-checkbox:checked')).map(cb => cb.dataset.billId);
+                const newHistoryEntry = { status: 'Drafted', date: Timestamp.fromDate(new Date()) };
+
+                for (const billId of billIdsToProcess) {
+                    await updateDoc(doc(getBillsCollection(), billId), { 
+                        status: 'Drafted',
+                        history: arrayUnion(newHistoryEntry)
+                    });
+                }
+                
+                elements.textOutputModal.classList.add('hidden');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+        }
+        
+        // --- Document Generation ---
+        const showSpinner = (msg) => { elements.spinnerMessage.textContent = msg; elements.spinnerModal.classList.remove('hidden'); };
+        const hideSpinner = () => elements.spinnerModal.classList.add('hidden');
+
+        async function handleGeneratePackage() {
+            showSpinner("Preparing package...");
+            const billsToProcess = Array.from(document.querySelectorAll('.pending-bill-checkbox:checked'))
+                .map(cb => bills.find(b => b.id === cb.dataset.billId));
+            
+            try {
+                // Fetch templates
+                showSpinner("Fetching templates...");
+                const appTemplateRef = ref(storage, 'appexpend.pdf');
+                const entryTemplateRef = ref(storage, 'entryexpend.pdf');
+                const [appTemplateUrl, entryTemplateUrl] = await Promise.all([
+                    getDownloadURL(appTemplateRef),
+                    getDownloadURL(entryTemplateRef)
+                ]);
+                const [appTemplateBytes, entryTemplateBytes] = await Promise.all([
+                    fetch(appTemplateUrl).then(res => res.arrayBuffer()),
+                    fetch(entryTemplateUrl).then(res => res.arrayBuffer())
+                ]);
+
+                // Fill court forms
+                showSpinner("Filling court forms...");
+                const [appPdfDoc, entryPdfDoc] = await Promise.all([
+                    PDFDocument.load(appTemplateBytes),
+                    PDFDocument.load(entryTemplateBytes)
+                ]);
+
+                const appForm = appPdfDoc.getForm();
+                appForm.getTextField('C-Name').setText(selectedWardData.wardName);
+                appForm.getTextField('C_Number').setText(selectedWardData.caseNumber);
+                 appForm.getCheckBox('Check Box 2').check();
+
+                const entryForm = entryPdfDoc.getForm();
+                entryForm.getTextField('C_Name').setText(selectedWardData.wardName);
+                entryForm.getTextField('C_Number').setText(selectedWardData.caseNumber);
+
+                const oneTimeBills = billsToProcess.filter(b => b.expenseType === 'One-Time');
+                const budgetBills = billsToProcess.filter(b => b.expenseType === 'Budget');
+                let expenseText = '';
+                 if (oneTimeBills.length > 0) {
+                    expenseText += oneTimeBills.map(b => `${b.expenseType} ${b.amountType === 'Up To' ? 'up to ' : ''}$${parseFloat(b.amount).toFixed(2)} to ${b.payee} for ${b.description}`).join('\n');
+                }
+                if (budgetBills.length > 0) {
+                    if (expenseText.length > 0) expenseText += '\n\n';
+                    const now = new Date();
+                    const startMonth = now.toLocaleString('default', { month: 'long' });
+                    const startYear = now.getFullYear();
+                    expenseText += `For the period beginning ${startMonth} ${startYear} and ending ${startMonth} ${startYear + 1}.\n`;
+                    expenseText += budgetBills.map(b => `Budget ${b.amountType === 'Up To' ? 'up to ' : ''}$${parseFloat(b.amount).toFixed(2)} to ${b.payee} for ${b.description} per month`).join('\n');
+                }
+                
+                appForm.getTextField('Text1').setText(expenseText);
+                entryForm.getTextField('Text6').setText(expenseText);
+                
+                // Fetch exhibits
+                showSpinner("Fetching exhibits...");
+                const exhibitBills = billsToProcess.filter(b => b.exhibitUrl);
+                const exhibitFetches = exhibitBills.map(b => fetch(b.exhibitUrl).then(res => res.arrayBuffer()));
+                const exhibitBytesArray = await Promise.all(exhibitFetches);
+
+                // Create exhibits PDF
+                const exhibitsPdfDoc = await PDFDocument.create();
+                for (const exhibitBytes of exhibitBytesArray) {
+                    try {
+                        const donorPdfDoc = await PDFDocument.load(exhibitBytes);
+                        const copiedPages = await exhibitsPdfDoc.copyPages(donorPdfDoc, donorPdfDoc.getPageIndices());
+                        copiedPages.forEach(page => exhibitsPdfDoc.addPage(page));
+                    } catch (e) {
+                         const image = await exhibitsPdfDoc.embedPng(exhibitBytes);
+                         const page = exhibitsPdfDoc.addPage();
+                         page.drawImage(image, {
+                             x: 50,
+                             y: page.getHeight() - image.height - 50,
+                             width: image.width,
+                             height: image.height,
+                         });
+                    }
+                }
+                
+                // Create ZIP file
+                showSpinner("Creating ZIP file...");
+                const zip = new JSZip();
+                const safeWardName = selectedWardData.wardName.replace(/[^a-z0-9]/gi, '_');
+
+                zip.file(`${safeWardName}_Application.pdf`, await appPdfDoc.save());
+                zip.file(`${safeWardName}_Entry.pdf`, await entryPdfDoc.save());
+                if (exhibitBytesArray.length > 0) {
+                    zip.file(`${safeWardName}_Exhibits.pdf`, await exhibitsPdfDoc.save());
+                }
+                
+                const zipContent = await zip.generateAsync({ type: "blob" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(zipContent);
+                link.download = `${safeWardName}_Filing_Package.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+
+                // Update status
+                 const newHistoryEntry = { status: 'Drafted', date: Timestamp.fromDate(new Date()) };
+                for (const bill of billsToProcess) {
+                    await updateDoc(doc(getBillsCollection(), bill.id), { 
+                        status: 'Drafted',
+                        history: arrayUnion(newHistoryEntry)
+                    });
+                }
+
+            } catch (error) {
+                console.error("Package generation failed:", error);
+                alert(`Error generating package: ${error.message}`);
+            } finally {
+                hideSpinner();
+            }
+        }
+    </script>
+</body>
+</html>
